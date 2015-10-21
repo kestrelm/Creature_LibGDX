@@ -82,7 +82,7 @@ public class CreatureRenderer {
                                creature_manager.target_creature.total_num_pts,
                                creature_manager.target_creature.total_num_indices,
                                new VertexAttribute(VertexAttributes.Usage.Position, 3, "Position"),
-                               new VertexAttribute(VertexAttributes.Usage.Color, 4, "Color"),
+                               new VertexAttribute(VertexAttributes.Usage.ColorUnpacked, 4, "Color"),
                                new VertexAttribute(VertexAttributes.Usage.TextureCoordinates, 2, "TexCoord")
                 );
 
@@ -109,30 +109,31 @@ public class CreatureRenderer {
         int vert_offset = 3 + 4 + 2;
         int pt_index = 0, uv_index = 0, color_index = 0;
         Creature target_creature = creature_manager.target_creature;
-        Vector<Float> read_pts = target_creature.render_pts;
-        Vector<Float> read_uvs = target_creature.global_uvs;
-        Vector<Float> read_colours = target_creature.render_colours;
+        float[] read_pts = target_creature.render_pts;
+        float[] read_uvs = target_creature.global_uvs;
+        float[] read_colours = target_creature.render_colours;
 
 
         for(int i = 0; i < vertices.length; i += vert_offset)
         {
-            vertices[i + 0] = read_pts.get(pt_index + 0);
-            vertices[i + 1] = read_pts.get(pt_index + 1);
-            vertices[i + 2] = read_pts.get(pt_index + 2);
+            vertices[i + 0] = read_pts[pt_index + 0];
+            vertices[i + 1] = read_pts[pt_index + 1];
+            vertices[i + 2] = read_pts[pt_index + 2];
 
-            vertices[i + 3] = read_colours.get(color_index + 0);
-            vertices[i + 4] = read_colours.get(color_index + 1);
-            vertices[i + 5] = read_colours.get(color_index + 2);
-            vertices[i + 6] = read_colours.get(color_index + 3);
+            vertices[i + 3] = read_colours[color_index + 0];
+            vertices[i + 4] = read_colours[color_index + 1];
+            vertices[i + 5] = read_colours[color_index + 2];
+            vertices[i + 6] = read_colours[color_index + 3];
 
-            vertices[i + 7] = read_uvs.get(uv_index + 0);
-            vertices[i + 8] = read_uvs.get(uv_index + 1);
+            vertices[i + 7] = read_uvs[uv_index + 0];
+            vertices[i + 8] = read_uvs[uv_index + 1];
 
             pt_index += 3;
             uv_index += 2;
             color_index += 4;
         }
 
+        int vertCnt = vertices.length << 2;
         render_mesh.setVertices(vertices);
     }
 

@@ -97,22 +97,24 @@ public class CreatureModuleUtils {
         return ret_list;
     }
 
-    public static java.util.Vector<Float> ReadFloatArray3DJSON(JsonValue data,
-                                                               String key)
+    public static float[] ReadFloatArray3DJSON(JsonValue data, String key)
     {
         float[] raw_array = getFloatArray(data.get(key));
-
-        java.util.Vector<Float> ret_list = new java.util.Vector<Float>();
         int num_points = raw_array.length / 2;
-        for (int i = 0; i < num_points; i++)
+        float[] ret_array = new float[num_points * 3];
+        
+        int j = 0;
+        for(int i = 0; i < num_points; i++)
         {
-            int cur_index = i * 2;
-            ret_list.add((float) raw_array[0 + cur_index]);
-            ret_list.add((float) raw_array[1 + cur_index]);
-            ret_list.add((float)0);
+        	int cur_index = i * 2;
+        	ret_array[j + 0] = (float)raw_array[0 + cur_index];
+        	ret_array[j + 1] = (float)raw_array[1 + cur_index];
+        	ret_array[j + 2] = 0;
+        	
+        	j += 3;
         }
-
-        return ret_list;
+        
+        return ret_array;
     }
 
     public static boolean ReadBoolJSON(JsonValue data,
@@ -122,17 +124,11 @@ public class CreatureModuleUtils {
         return val;
     }
 
-    public static java.util.Vector<Float> ReadFloatArrayJSON(JsonValue data,
+    public static float[] ReadFloatArrayJSON(JsonValue data,
                                                  String key)
     {
         float[] raw_array = getFloatArray(data.get(key));
-        java.util.Vector<Float> ret_list = new java.util.Vector<Float>();
-        for(int i = 0; i < raw_array.length; i++)
-        {
-            ret_list.add(raw_array[i]);
-        }
-
-        return ret_list;
+        return raw_array;
     }
 
     public static java.util.Vector<Integer> ReadIntArrayJSON(JsonValue data,
@@ -237,8 +233,8 @@ public class CreatureModuleUtils {
     public static Vector<MeshRenderRegion> CreateRegions(JsonValue json_obj,
                                                        String key,
                                                        Vector<Integer> indices_in,
-                                                       Vector<Float> rest_pts_in,
-                                                       Vector<Float> uvs_in)
+                                                       float[] rest_pts_in,
+                                                       float[] uvs_in)
     {
         Vector<MeshRenderRegion> ret_regions = new Vector<MeshRenderRegion> ();
         JsonValue base_obj = json_obj.get(key);
@@ -265,14 +261,14 @@ public class CreatureModuleUtils {
             new_region.setTagId(cur_id);
 
             // Read in weights
-            HashMap<String, Vector<Float> > weight_map =
+            HashMap<String, float[] > weight_map =
                     new_region.normal_weight_map;
             JsonValue weight_obj = cur_node.get("weights");
 
             for (JsonValue w_node = weight_obj.child; w_node != null; w_node = w_node.next)
             {
                 String w_key = w_node.name;
-                Vector<Float> values = ReadFloatArrayJSON(weight_obj, w_key);
+                float[] values = ReadFloatArrayJSON(weight_obj, w_key);
                 weight_map.put(w_key, values);
             }
 

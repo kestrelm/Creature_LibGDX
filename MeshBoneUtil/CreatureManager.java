@@ -55,7 +55,7 @@ public class CreatureManager {
     public boolean is_playing;
     public float run_time;
     public float time_scale;
-    public Vector<Vector<Float> > blend_render_pts;
+    public Vector<float[] > blend_render_pts;
     public boolean do_blending;
     public float blending_factor;
     public Vector<String> active_blend_animation_names;
@@ -75,7 +75,7 @@ public class CreatureManager {
         target_creature = target_creature_in;
         is_playing = false;
         run_time = 0;
-        time_scale = 30.0f;
+        time_scale = 60.0f;
         blending_factor = 0;
         animations = new HashMap<String, CreatureAnimation> ();
         use_custom_time_range = false;
@@ -83,9 +83,9 @@ public class CreatureManager {
         should_loop = true;
         bones_override_callback = null;
 
-        blend_render_pts = new Vector<Vector<Float> >();
-        blend_render_pts.add(new Vector<Float>());
-        blend_render_pts.add(new Vector<Float>());
+        blend_render_pts = new Vector<float[] >();
+        blend_render_pts.add(new float[1]);
+        blend_render_pts.add(new float[1]);
 
         active_blend_animation_names = new Vector<String>();
         active_blend_animation_names.add("");
@@ -336,16 +336,16 @@ public class CreatureManager {
             for(int j = 0; j < target_creature.total_num_pts * 3; j++)
             {
                 int set_data_index = j;
-                float read_data_1 = blend_render_pts.get(0).get(j);
-                float read_data_2 = blend_render_pts.get(1).get(j);
+                float read_data_1 = blend_render_pts.get(0)[j];
+                float read_data_2 = blend_render_pts.get(1)[j];
 /*
                 target_creature.render_pts[set_data_index] =
                         ((1.0f - blending_factor) * (read_data_1)) +
                                 (blending_factor * (read_data_2));
 */
-                target_creature.render_pts.set(set_data_index,
+                target_creature.render_pts[set_data_index] =
                         ((1.0f - blending_factor) * (read_data_1)) +
-                                (blending_factor * (read_data_2)));
+                                (blending_factor * (read_data_2));
 
             }
         }
@@ -366,21 +366,21 @@ public class CreatureManager {
         do_blending = flag_in;
 
         if (do_blending) {
-            if (blend_render_pts.get(0).size() == 0) {
-                Vector<Float> new_vec = new Vector<Float>();
+            if (blend_render_pts.get(0).length == 1) {
+                float[] new_vec = new float[target_creature.total_num_pts * 3];
                 for(int i = 0; i < target_creature.total_num_pts * 3; i++)
                 {
-                    new_vec.add((float)0);
+                    new_vec[i] = 0;
                 }
 
                 blend_render_pts.set(0, new_vec);
             }
 
-            if (blend_render_pts.get(1).size() == 0) {
-                Vector<Float> new_vec = new Vector<Float>();
+            if (blend_render_pts.get(1).length == 1) {
+                float[] new_vec = new float[target_creature.total_num_pts * 3];
                 for(int i = 0; i < target_creature.total_num_pts * 3; i++)
                 {
-                    new_vec.add((float)0);
+                    new_vec[i] = 0;
                 }
 
                 blend_render_pts.set(1, new_vec);
@@ -453,7 +453,7 @@ public class CreatureManager {
 
 
     public void PoseCreature(String animation_name_in,
-                             Vector<Float> target_pts)
+                             float[] target_pts)
     {
         CreatureAnimation cur_animation = animations.get(animation_name_in);
 

@@ -120,14 +120,11 @@ public class MeshUVWarpCacheManager {
 
             MeshRenderRegion set_region = regions_map.get(cur_key);
             if(set_region.getUseUvWarp()) {
-                Vector2 final_local_offset = base_data.getUvWarpLocalOffset().cpy().scl(1.0f - ratio).add(
-                        end_data.getUvWarpLocalOffset().cpy().scl(ratio));
+                Vector2 final_local_offset = base_data.getUvWarpLocalOffset();
 
-                Vector2 final_global_offset = base_data.getUvWarpGlobalOffset().cpy().scl(1.0f - ratio).add(
-                        end_data.getUvWarpGlobalOffset().cpy().scl(ratio));
+                Vector2 final_global_offset = base_data.getUvWarpGlobalOffset();
 
-                Vector2 final_scale = base_data.getUvWarpScale().cpy().scl(1.0f - ratio).add(
-                        end_data.getUvWarpScale().cpy().scl(ratio));
+                Vector2 final_scale = base_data.getUvWarpScale();
                 /*
                 Vector2 final_local_offset = ((1.0f - ratio) * base_data.getUvWarpLocalOffset()) +
                         (ratio * end_data.getUvWarpLocalOffset());

@@ -46,7 +46,7 @@ public class MeshRenderRegion {
     public int start_pt_index, end_pt_index;
     public int start_index, end_index;
     public java.util.Vector<Integer> store_indices;
-    public java.util.Vector<Float> store_rest_pts,
+    public float[] store_rest_pts,
             store_uvs;
     public java.util.Vector<Vector2> local_displacements;
     public boolean use_local_displacements;
@@ -55,8 +55,10 @@ public class MeshRenderRegion {
     public boolean use_uv_warp;
     public Vector2 uv_warp_local_offset, uv_warp_global_offset, uv_warp_scale;
     public java.util.Vector<Vector2> uv_warp_ref_uvs;
-    public HashMap<String, Vector<Float> > normal_weight_map;
-    public java.util.Vector<java.util.Vector<Float> > fast_normal_weight_map;
+    public HashMap<String, float[] > normal_weight_map;
+    public java.util.Vector<float[] > fast_normal_weight_map;
+    public Vector<MeshBone> fast_bones_map;
+    public Vector<Vector<Integer> > relevant_bones_indices;
     public String main_bone_key;
     public MeshBone main_bone;
     public boolean use_dq;
@@ -64,8 +66,8 @@ public class MeshRenderRegion {
     public int tag_id;
 
     public MeshRenderRegion(java.util.Vector<Integer> indices_in,
-                            java.util.Vector<Float> rest_pts_in,
-                            java.util.Vector<Float> uvs_in,
+                            float[] rest_pts_in,
+                            float[] uvs_in,
                             int start_pt_index_in,
                             int end_pt_index_in,
                             int start_index_in,
@@ -89,8 +91,10 @@ public class MeshRenderRegion {
         local_displacements = new java.util.Vector<Vector2>();
         post_displacements = new java.util.Vector<Vector2>();
         uv_warp_ref_uvs = new java.util.Vector<Vector2>();
-        normal_weight_map = new HashMap<String, Vector<Float>>();
-        fast_normal_weight_map = new java.util.Vector<java.util.Vector<Float> >();
+        normal_weight_map = new HashMap<String, float[]>();
+        fast_normal_weight_map = new java.util.Vector<float[]>();
+        fast_bones_map = new Vector<MeshBone>();
+        relevant_bones_indices = new Vector<Vector<Integer> >();
         use_dq = true;
         tag_id = -1;
 
@@ -145,7 +149,7 @@ public class MeshRenderRegion {
         return end_index;
     }
 
-    public void poseFinalPts(java.util.Vector<Float> output_pts,
+    public void poseFinalPts(float[] output_pts,
                              int output_start_index,
                              HashMap<String, MeshBone> bones_map)
     {
@@ -153,63 +157,38 @@ public class MeshRenderRegion {
         int write_pt_index = output_start_index;
 
         // point posing
-        float[] empty_vals = new float[] {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-        Matrix4 accum_mat = new Matrix4(empty_vals);
+        int readNumPts = getNumPts();
+        dualQuat accum_dq = new dualQuat();
 
-        for(int i = 0; i < getNumPts(); i++) {
+        for(int i = 0; i < readNumPts; i++) {
             Vector3 cur_rest_pt =
-                    new Vector3(store_rest_pts.get(0 + read_pt_index),
-                            store_rest_pts.get(1 + read_pt_index),
-                            store_rest_pts.get(2 + read_pt_index));
+                    new Vector3(store_rest_pts[0 + read_pt_index],
+                            store_rest_pts[1 + read_pt_index],
+                            store_rest_pts[2 + read_pt_index]);
 
             if(use_local_displacements) {
                 cur_rest_pt.x += local_displacements.get(i).x;
                 cur_rest_pt.y += local_displacements.get(i).y;
             }
 
-            accum_mat.set(empty_vals);
-            dualQuat accum_dq = new dualQuat();
-
-            int n_index = 0;
-            for(HashMap.Entry<String, MeshBone> cur_iter : bones_map.entrySet())
+            accum_dq.zeroOut();
+            
+            Vector<Integer> bone_indices = relevant_bones_indices.get(i);
+            for(int k = 0; k < bone_indices.size(); k++)
             {
-                String cur_key = cur_iter.getKey();
-                MeshBone cur_bone = cur_iter.getValue();
-                float cur_weight_val = 0;
-                if(fast_normal_weight_map.size() > 0) {
-                    cur_weight_val = fast_normal_weight_map.get(n_index).get(i);
-                }
-                else {
-                    cur_weight_val = normal_weight_map.get(cur_key).get(i);
-                }
-
-                float cur_im_weight_val = cur_weight_val;
-
-                if(use_dq == false) {
-                    Matrix4 world_delta_mat = cur_bone.getWorldDeltaMat();
-                    //accum_mat += world_delta_mat.cpy() * cur_weight_val;
-                    accum_mat = Utils.addMat(accum_mat, Utils.mulMat(world_delta_mat, cur_weight_val));
-                }
-                else {
-                    dualQuat world_dq = cur_bone.getWorldDq();
-                    accum_dq.add(world_dq, cur_weight_val, cur_im_weight_val);
-                }
-
-                ++n_index;
+            	int j = bone_indices.get(k);
+            	MeshBone cur_bone = fast_bones_map.get(j);
+            	float cur_weight_val = fast_normal_weight_map.get(j)[i];
+            	float cur_im_weight_val  = cur_weight_val;
+            	
+            	dualQuat world_dq = cur_bone.getWorldDq();
+            	accum_dq.add(world_dq, cur_weight_val, cur_im_weight_val);
             }
 
             Vector3 final_pt = new Vector3(0,0,0);
-            if(use_dq == false) {
-                Vector3 tmp_pt = new Vector3(cur_rest_pt.x, cur_rest_pt.y, cur_rest_pt.z);
-                //final_pt = XnaGeometry.Vector3.Transform(tmp_pt, accum_mat);
-                accum_mat.tra();
-                final_pt = tmp_pt.traMul(accum_mat);
-            }
-            else {
-                accum_dq.normalize();
-                Vector3 tmp_pt = new Vector3(cur_rest_pt.x, cur_rest_pt.y, cur_rest_pt.z);
-                final_pt = accum_dq.transform(tmp_pt);
-            }
+            accum_dq.normalize();
+            Vector3 tmp_pt = new Vector3(cur_rest_pt.x, cur_rest_pt.y, cur_rest_pt.z);
+            final_pt = accum_dq.transform(tmp_pt);
 
             // debug start
 
@@ -224,9 +203,9 @@ public class MeshRenderRegion {
                 final_pt.y += post_displacements.get(i).y;
             }
 
-            output_pts.set(0 + write_pt_index, final_pt.x);
-            output_pts.set(1 + write_pt_index, final_pt.y);
-            output_pts.set(2 + write_pt_index, final_pt.z);
+            output_pts[0 + write_pt_index] = final_pt.x;
+            output_pts[1 + write_pt_index] = final_pt.y;
+            output_pts[2 + write_pt_index] = final_pt.z;
 
             /*
 				output_pts[0 + write_pt_index] = (float)final_pt.X;
@@ -310,8 +289,8 @@ public class MeshRenderRegion {
     public Vector2 getRestLocalPt(int index_in)
     {
         int read_pt_index = getRestPtsIndex() + (3 * index_in);
-        Vector2 return_pt = new Vector2(store_rest_pts.get(0 + read_pt_index),
-                                        store_rest_pts.get(1 + read_pt_index));
+        Vector2 return_pt = new Vector2(store_rest_pts[0 + read_pt_index],
+                                        store_rest_pts[1 + read_pt_index]);
         return return_pt;
     }
 
@@ -393,8 +372,8 @@ public class MeshRenderRegion {
             set_uv += uv_warp_global_offset;
             */
 
-            store_uvs.set(0 + cur_uvs_index, set_uv.x);
-            store_uvs.set(1 + cur_uvs_index, set_uv.y);
+            store_uvs[0 + cur_uvs_index] = set_uv.x;
+            store_uvs[1 + cur_uvs_index] = set_uv.y;
 
             /*
             store_uvs[0 + cur_uvs_index] = (float)set_uv.X;
@@ -412,8 +391,8 @@ public class MeshRenderRegion {
         for(int i = 0; i < uv_warp_ref_uvs.size(); i++) {
             Vector2 set_uv = uv_warp_ref_uvs.get(i);
 
-            store_uvs.set(0 + cur_uvs_index, set_uv.x);
-            store_uvs.set(1 + cur_uvs_index, set_uv.y);
+            store_uvs[0 + cur_uvs_index] = set_uv.x;
+            store_uvs[1 + cur_uvs_index] = set_uv.y;
 
             /*
             store_uvs[0 + cur_uvs_index] = (float)set_uv.X;
@@ -436,11 +415,33 @@ public class MeshRenderRegion {
 
     public void initFastNormalWeightMap(HashMap<String, MeshBone> bones_map)
     {
+    	fast_normal_weight_map.clear();
+    	fast_bones_map.clear();
+    	relevant_bones_indices.clear();
+    	
         for (HashMap.Entry<String, MeshBone> cur_iter : bones_map.entrySet()) {
             String cur_key = cur_iter.getKey();
-            java.util.Vector<Float> values = normal_weight_map.get(cur_key);
-        fast_normal_weight_map.add(values);
-    }
+            float[] values = normal_weight_map.get(cur_key);
+            fast_normal_weight_map.add(values);
+            
+            fast_bones_map.add(bones_map.get(cur_key));
+        }
+        
+        for(int i = 0; i < getNumPts(); i++)
+        {
+        	Vector<Integer> relevant_array = new Vector<Integer>();
+        	float cutoff_val = 0.05f;
+        	for(int j = 0; j < fast_normal_weight_map.size(); j++)
+        	{
+        		float sample_val = fast_normal_weight_map.get(j)[i];
+        		if(sample_val > cutoff_val)
+        		{
+        			relevant_array.add(j);
+        		}
+        	}
+        	
+        	relevant_bones_indices.add(relevant_array);
+        }
     }
 
     public void initUvWarp()
@@ -455,8 +456,8 @@ public class MeshRenderRegion {
             uv_warp_ref_uvs[i] = new Vector2(store_uvs[cur_uvs_index],
                     store_uvs[cur_uvs_index + 1]);
 */
-            uv_warp_ref_uvs.set(i, new Vector2(store_uvs.get(cur_uvs_index),
-                    store_uvs.get(cur_uvs_index + 1)));
+            uv_warp_ref_uvs.set(i, new Vector2(store_uvs[cur_uvs_index],
+                    store_uvs[cur_uvs_index + 1]));
 
             cur_uvs_index += 2;
         }

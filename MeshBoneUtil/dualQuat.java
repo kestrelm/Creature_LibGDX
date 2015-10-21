@@ -64,6 +64,19 @@ public class dualQuat {
         imaginary.y =  0.5f * (-t.x * q0.z + t.y * q0.w + t.z * q0.x);
         imaginary.z =  0.5f * ( t.x * q0.y - t.y * q0.x + t.z * q0.w);
     }
+    
+    public void zeroOut()
+    {
+        real.w = 0;
+        real.x = 0;
+        real.y = 0;
+        real.z = 0;
+
+        imaginary.w = 0;
+        imaginary.x = 0;
+        imaginary.y = 0;
+        imaginary.z = 0;
+    }
 
     public void add(dualQuat quat_in, float real_factor, float imaginary_factor)
     {
