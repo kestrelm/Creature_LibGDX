@@ -60,6 +60,18 @@ public class Creature {
 
     public Creature(JsonValue load_data)
     {
+    	StartInit();
+        LoadFromData(load_data);
+    }
+    
+    public Creature(CreatureFlatDataJava.rootData flatRoot)
+    {
+    	StartInit();
+    	LoadFromDataFlat(flatRoot);
+    }
+    
+    private void StartInit()
+    {
         total_num_pts = 0;
         total_num_indices = 0;
         global_indices = null;
@@ -68,8 +80,6 @@ public class Creature {
         render_pts = null;
         render_colours = null;
         render_composition = null;
-
-        LoadFromData(load_data);
     }
 
     // Fills entire mesh with (r,g,b,a) colours
@@ -84,7 +94,7 @@ public class Creature {
             render_colours[3 + cur_colour_index] = a;
         }
     }
-
+    
     public void LoadFromData(JsonValue load_data)
     {
         // Load points and topology
@@ -141,4 +151,60 @@ public class Creature {
 
         render_composition.resetToWorldRestPts();
     }
+    
+    public void LoadFromDataFlat(CreatureFlatDataJava.rootData flatRoot)
+    {
+    	CreatureFlatDataJava.mesh flat_mesh = flatRoot.dataMesh();
+    	CreatureFlatDataJava.skeleton flat_skeleton = flatRoot.dataSkeleton();
+    	
+        global_pts = flat_mesh.ReadPoints(); //CreatureModuleUtils.ReadFloatArray3DJSON(json_mesh, "points");
+        total_num_pts = global_pts.length / 3;
+
+        global_indices = flat_mesh.ReadIndices(); //CreatureModuleUtils.ReadIntArrayJSON (json_mesh, "indices");
+        total_num_indices = global_indices.size();
+
+        global_uvs = flat_mesh.ReadUvs(); //CreatureModuleUtils.ReadFloatArrayJSON (json_mesh, "uvs");
+        /*
+        // Flip UVs
+        for (int i = 0; i < global_uvs.size(); i+=2) {
+            global_uvs.set(i + 1, 1.0f - global_uvs.get(i + 1));
+        }
+        */
+
+        render_colours = new float[total_num_pts * 4];
+        FillRenderColours(1, 1, 1, 1);
+
+        render_pts = Arrays.copyOf(global_pts, global_pts.length);
+
+        // Load bones
+        MeshBone root_bone = CreatureModuleUtils.CreateBonesFlat(flat_skeleton);
+
+
+        // Load regions
+        Vector<MeshRenderRegion> regions = CreatureModuleUtils.CreateRegionsFlat(flat_mesh,
+                global_indices,
+                global_pts,
+                global_uvs);
+
+        // Add into composition
+        render_composition = new MeshRenderBoneComposition();
+        render_composition.setRootBone(root_bone);
+        render_composition.getRootBone().computeRestParentTransforms();
+
+        for(MeshRenderRegion cur_region : regions) {
+            cur_region.setMainBoneKey(root_bone.getKey());
+            cur_region.determineMainBone(root_bone);
+            render_composition.addRegion(cur_region);
+        }
+
+        render_composition.initBoneMap();
+        render_composition.initRegionsMap();
+
+        for(MeshRenderRegion cur_region : regions) {
+            cur_region.initFastNormalWeightMap(render_composition.bones_map);
+        }
+
+        render_composition.resetToWorldRestPts();
+    }
+
 }

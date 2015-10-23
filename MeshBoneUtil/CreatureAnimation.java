@@ -58,12 +58,23 @@ public class CreatureAnimation {
     public CreatureAnimation(JsonValue load_data,
                              String name_in)
     {
+    	StartInit(name_in);
+        LoadFromData(name_in, load_data);
+    }
+    
+    public CreatureAnimation(CreatureFlatDataJava.animation animFlat,
+    		String name_in)
+    {
+    	StartInit(name_in);
+    	LoadFromDataFlat(name_in, animFlat);
+    }
+    
+    private void StartInit(String name_in)
+    {
         name = name_in;
         bones_cache = new MeshBoneCacheManager ();
         displacement_cache = new MeshDisplacementCacheManager ();
         uv_warp_cache = new MeshUVWarpCacheManager ();
-
-        LoadFromData(name_in, load_data);
     }
 
     public void LoadFromData(String name_in,
@@ -97,4 +108,40 @@ public class CreatureAnimation {
                 (int)end_time,
                  uv_warp_cache);
     }
+   
+	public void LoadFromDataFlat(String name_in,
+			CreatureFlatDataJava.animation animFlat)
+	{
+		CreatureFlatDataJava.animationClip flat_clip = null;
+		for(int i = 0; i < animFlat.clipsLength(); i++)
+		{
+			if(animFlat.clips(i).name().equals(name_in))
+			{
+				flat_clip = animFlat.clips(i);
+				break;
+			}
+		}
+		
+        Tuple<Integer, Integer> start_end_times = CreatureModuleUtils.GetStartEndTimesFlat(flat_clip.bones()); //CreatureModuleUtils.GetStartEndTimes(json_clip, "bones");
+        start_time = start_end_times.x;
+        end_time = start_end_times.y;
+
+        // bone animation
+        CreatureModuleUtils.FillBoneCacheFlat(flat_clip.bones(),
+                (int)start_time,
+                (int)end_time,
+                 bones_cache);
+
+        // mesh deformation animation
+        CreatureModuleUtils.FillDeformationCacheFlat(flat_clip.meshes(),
+                (int)start_time,
+                (int)end_time,
+                 displacement_cache);
+
+        // uv swapping animation
+        CreatureModuleUtils.FillUVSwapCacheFlat(flat_clip.uvSwaps(),
+                (int)start_time,
+                (int)end_time,
+                 uv_warp_cache);
+	}
 }
