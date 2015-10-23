@@ -13,7 +13,7 @@ precision mediump float;
 uniform sampler2D u_texture;
 
 //"in" varyings from our vertex shader
-varying vec4 vColor;
+varying LOW vec4 vColor;
 varying vec2 vTexCoord;
 
 void main() {
