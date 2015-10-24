@@ -21,17 +21,12 @@ public class MyGdxGame extends ApplicationAdapter {
 	@Override
 	public void create () {
 		
-		String baseResourcePath = Gdx.files.getLocalStoragePath();
 		//String jsonFilename = baseResourcePath + "character_raptor_data.json";
-		String flatFilename = baseResourcePath + "/character_raptor_data.bin";
-		String pngFilename = baseResourcePath + "/character_raptor_img.png";
-		
+		String flatFilename = "character_raptor_data.bin";
+		String pngFilename = "character_raptor_img.png";
+
 		camera = new OrthographicCamera( (float)Gdx.graphics.getWidth() * 0.05f,
                 (float)Gdx.graphics.getHeight() * 0.05f);
-		
-		// Load json
-		//JsonValue json_data = CreatureModuleUtils.LoadCreatureJSONData(jsonFilename);
-		//store_json = json_data;
 		
 		// Load flat data
 		CreatureFlatDataJava.rootData flat_data = CreatureModuleUtils.LoadCreatureFlatData(flatFilename);
@@ -59,10 +54,9 @@ public class MyGdxGame extends ApplicationAdapter {
         active_creature_manager = new_creature_manager;
         
         // load shaders
-        final String VERTEX = Gdx.files.absolute(baseResourcePath + "MeshBoneShader.vert").readString(); //Gdx.files.internal("MeshBoneShader.vert").readString();
-        final String FRAGMENT = Gdx.files.absolute(baseResourcePath + "MeshBoneShader.frag").readString(); //Gdx.files.internal("MeshBoneShader.frag").readString();
+        final String VERTEX = Gdx.files.internal("MeshBoneShader.vert").readString(); //Gdx.files.internal("MeshBoneShader.vert").readString();
+        final String FRAGMENT = Gdx.files.internal("MeshBoneShader.frag").readString(); //Gdx.files.internal("MeshBoneShader.frag").readString();
         ShaderProgram program = new ShaderProgram(VERTEX, FRAGMENT);
-
         Texture new_texture = new Texture(pngFilename);
 
         // Create the creature render object
