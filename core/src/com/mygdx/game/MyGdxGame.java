@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.utils.JsonValue;
+import com.badlogic.gdx.graphics.FPSLogger;
 
 public class MyGdxGame extends ApplicationAdapter {
 	
@@ -17,9 +18,11 @@ public class MyGdxGame extends ApplicationAdapter {
 	CreatureManager active_creature_manager;
     CreatureRenderer active_creature_render;
     JsonValue store_json;
+    FPSLogger fpsLogger;
 	
 	@Override
 	public void create () {
+		fpsLogger = new FPSLogger();
 		
 		//String jsonFilename = baseResourcePath + "character_raptor_data.json";
 		String flatFilename = "character_raptor_data.bin";
@@ -82,5 +85,7 @@ public class MyGdxGame extends ApplicationAdapter {
         active_creature_manager.Update(Gdx.graphics.getDeltaTime());
         active_creature_render.Flush();
         
+        // output the current FPS
+        //fpsLogger.log();
 	}
 }

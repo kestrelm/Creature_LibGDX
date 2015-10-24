@@ -42,6 +42,8 @@ import com.badlogic.gdx.math.Quaternion;
 
 public class dualQuat {
     public Quaternion real, imaginary;
+    Vector3 v0, ve;
+    Vector3 tmpVec, tmpVec0, tmpVec1, tmpVec2;
 
     public dualQuat()
     {
@@ -53,6 +55,13 @@ public class dualQuat {
         real.z = 0;
 
         imaginary = real.cpy();
+        
+        v0 = new Vector3(0,0,0);
+        ve = new Vector3(0,0,0);
+        tmpVec = new Vector3(0,0,0);
+        tmpVec0 = new Vector3(0,0,0);
+        tmpVec1 = new Vector3(0,0,0);
+        tmpVec2 = new Vector3(0,0,0);
     }
 
     public dualQuat(Quaternion q0, Vector3 t)
@@ -129,23 +138,31 @@ public class dualQuat {
 
     public Vector3 transform(Vector3 p)
     {
-        Vector3 v0 = new Vector3(0,0,0);
         v0.x = real.x; v0.y = real.y; v0.z = real.z;
-
-        Vector3 ve = new Vector3(0,0,0);
         ve.x = imaginary.x; ve.y = imaginary.y; ve.z = imaginary.z;
 
         Vector3 trans;
         //trans = (ve*real.w - v0*imaginary.w + Vector3.Cross(v0, ve)) * 2.0f;
+        
+        tmpVec1.set(v0);
+        //Vector3 tmpVec1 = v0.cpy().scl((float)imaginary.w);
+        tmpVec1 = tmpVec1.scl((float)imaginary.w);
+        
+        tmpVec2.set(v0);
+        //Vector3 tmpVec2 = v0.cpy().crs(ve);
+        tmpVec2 = tmpVec2.crs(ve);
 
-        Vector3 tmpVec1 = v0.cpy().scl((float)imaginary.w);
-        Vector3 tmpVec2 = v0.cpy().crs(ve);
-        Vector3 tmpVec0 = ve.cpy().scl(real.w);
+        tmpVec0.set(ve);        
+        //Vector3 tmpVec0 = ve.cpy().scl(real.w);
+        tmpVec0 = tmpVec0.scl(real.w);
+        
         trans = tmpVec0.sub(tmpVec1).add(tmpVec2);
         trans.scl(2.0f);
 
-        Vector3 rot = real.transform(p.cpy());
-
+        //Vector3 rot = real.transform(p.cpy());
+        tmpVec.set(p);
+        Vector3 rot = real.transform(tmpVec);
+        
         //return (XnaGeometry.Vector3.Transform(p, real)) + trans;
         return rot.add(trans);
     }

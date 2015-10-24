@@ -160,10 +160,12 @@ public class MeshRenderRegion {
         // point posing
         int readNumPts = getNumPts();
         dualQuat accum_dq = new dualQuat();
-
+        Vector3 cur_rest_pt = new Vector3(0,0,0);
+        Vector3 final_pt = new Vector3(0,0,0);
+        Vector3 tmp_pt = new Vector3(0,0,0);
+        
         for(int i = 0; i < readNumPts; i++) {
-            Vector3 cur_rest_pt =
-                    new Vector3(store_rest_pts[0 + read_pt_index],
+            cur_rest_pt.set(store_rest_pts[0 + read_pt_index],
                             store_rest_pts[1 + read_pt_index],
                             store_rest_pts[2 + read_pt_index]);
 
@@ -175,7 +177,8 @@ public class MeshRenderRegion {
             accum_dq.zeroOut();
             
             Vector<Integer> bone_indices = relevant_bones_indices.get(i);
-            for(int k = 0; k < bone_indices.size(); k++)
+            int num_bone_indices = bone_indices.size();
+            for(int k = 0; k < num_bone_indices; k++)
             {
             	int j = bone_indices.get(k);
             	MeshBone cur_bone = fast_bones_map.get(j);
@@ -186,9 +189,9 @@ public class MeshRenderRegion {
             	accum_dq.add(world_dq, cur_weight_val, cur_im_weight_val);
             }
 
-            Vector3 final_pt = new Vector3(0,0,0);
+            final_pt.set(0,0,0);
             accum_dq.normalize();
-            Vector3 tmp_pt = new Vector3(cur_rest_pt.x, cur_rest_pt.y, cur_rest_pt.z);
+            tmp_pt.set(cur_rest_pt.x, cur_rest_pt.y, cur_rest_pt.z);
             final_pt = accum_dq.transform(tmp_pt);
 
             // debug start
