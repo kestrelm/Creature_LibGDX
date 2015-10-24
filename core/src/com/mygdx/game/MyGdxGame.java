@@ -50,6 +50,8 @@ public class MyGdxGame extends ApplicationAdapter {
         //new_creature_manager.AddAnimation(new_animation2);
         //new_creature_manager.AddAnimation(new_animation3);
         
+        new_creature_manager.MakePointCache("default", 2);
+        
         new_creature_manager.SetActiveAnimationName("default", false);
         new_creature_manager.SetIsPlaying(true);
         new_creature_manager.SetShouldLoop(true);

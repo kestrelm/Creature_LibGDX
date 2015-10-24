@@ -47,6 +47,17 @@ import java.util.Vector;
  * RUNTIMES.
  *****************************************************************************/
 
+class CreaturePointCache {
+	public float[] points;
+	public int time;
+	
+	CreaturePointCache(int time_in, float[] points_in)
+	{
+		points = points_in;
+		time = time_in;
+	}
+}
+
 // Class for animating the creature character
 public class CreatureAnimation {
     public String name;
@@ -54,6 +65,7 @@ public class CreatureAnimation {
     public MeshBoneCacheManager bones_cache;
     public MeshDisplacementCacheManager displacement_cache;
     public MeshUVWarpCacheManager uv_warp_cache;
+    public Vector<CreaturePointCache> cache_pts;
 
     public CreatureAnimation(JsonValue load_data,
                              String name_in)
@@ -75,6 +87,7 @@ public class CreatureAnimation {
         bones_cache = new MeshBoneCacheManager ();
         displacement_cache = new MeshDisplacementCacheManager ();
         uv_warp_cache = new MeshUVWarpCacheManager ();
+        cache_pts = new Vector<CreaturePointCache>();
     }
 
     public void LoadFromData(String name_in,
@@ -143,5 +156,53 @@ public class CreatureAnimation {
                 (int)start_time,
                 (int)end_time,
                  uv_warp_cache);
+	}
+	
+	public Boolean hasCachePts() {
+		return cache_pts.isEmpty() == false;
+	}
+	
+	public void addCachePts(int time_in, float[] points_in)
+	{
+		cache_pts.add(new CreaturePointCache(time_in, points_in));
+	}
+	
+	public void poseFromCachePts(float time_in, float[] target_pts, int num_pts)
+	{
+		// first find the start and end elements in the range of time_in
+		int start_idx = 0;
+		int end_idx = 0;
+		float cur_floor_time = 0;
+		float cur_ceil_time = 0;
+		
+		for(int i = 0; i < cache_pts.size(); i++)
+		{
+			CreaturePointCache cur_cache = cache_pts.get(i);
+			if(time_in <= cur_cache.time)
+			{
+				end_idx = i;
+				start_idx = i - 1;
+				
+				if(start_idx < 0)
+				{
+					end_idx = 1;
+					start_idx = 0;
+				}
+								
+				break;
+			}
+		}
+		
+		cur_floor_time = (float)cache_pts.get(start_idx).time;
+		cur_ceil_time = (float)cache_pts.get(end_idx).time;
+		
+		float cur_ratio = (time_in - cur_floor_time) / (cur_ceil_time - cur_floor_time);
+		float[] floor_pts = cache_pts.get(start_idx).points;
+		float[] ceil_pts = cache_pts.get(end_idx).points;
+		
+		for(int i = 0; i < num_pts * 3; i++)
+		{
+			target_pts[i] = ((1.0f - cur_ratio) * floor_pts[i]) + (cur_ratio * ceil_pts[i]);
+		}
 	}
 }

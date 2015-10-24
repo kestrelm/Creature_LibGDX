@@ -42,6 +42,7 @@ import com.badlogic.gdx.math.Quaternion;
 
 public class dualQuat {
     public Quaternion real, imaginary;
+    public Quaternion tmpQuat;
     Vector3 v0, ve;
     Vector3 tmpVec, tmpVec0, tmpVec1, tmpVec2;
 
@@ -55,6 +56,8 @@ public class dualQuat {
         real.z = 0;
 
         imaginary = real.cpy();
+        
+        tmpQuat = new Quaternion();
         
         v0 = new Vector3(0,0,0);
         ve = new Vector3(0,0,0);
@@ -89,7 +92,9 @@ public class dualQuat {
 
     public void add(dualQuat quat_in, float real_factor, float imaginary_factor)
     {
-        real = real.add((quat_in.real.cpy().mul(real_factor)));
+    	tmpQuat.set(quat_in.real);
+        //real = real.add((quat_in.real.cpy().mul(real_factor)));
+        real = real.add((tmpQuat.mul(real_factor)));
         imaginary = imaginary.add(quat_in.imaginary.cpy().mul(imaginary_factor));
 
     }

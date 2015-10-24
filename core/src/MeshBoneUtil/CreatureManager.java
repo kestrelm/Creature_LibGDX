@@ -10,6 +10,7 @@ import com.badlogic.gdx.Gdx;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Vector;
 
 /******************************************************************************
@@ -59,6 +60,10 @@ public class CreatureManager {
     public boolean do_blending;
     public float blending_factor;
     public Vector<String> active_blend_animation_names;
+    public Vector<String> auto_blend_names;
+    public HashMap<String, Float> active_blend_run_times;
+	public Boolean do_auto_blending;
+	public float auto_blend_delta;
     public boolean use_custom_time_range;
     public int custom_start_time, custom_end_time;
     public boolean should_loop;
@@ -90,7 +95,78 @@ public class CreatureManager {
         active_blend_animation_names = new Vector<String>();
         active_blend_animation_names.add("");
         active_blend_animation_names.add("");
+        
+		do_auto_blending = false;
+		auto_blend_delta = 0.0f;
+
+		auto_blend_names = new Vector<String>();
+		auto_blend_names.add("");
+		auto_blend_names.add("");
+        
+        active_blend_run_times = new HashMap<String, Float>();
     }
+    
+	// Create a point cache for a specific animation
+	// This speeds up playback but you will lose the ability to directly
+	// manipulate the bones.
+	public void
+	MakePointCache(String animation_name_in, int gapStep)
+	{
+		if (gapStep < 1) {
+			gapStep = 1;
+		}
+
+		float store_run_time = getRunTime();
+		CreatureAnimation cur_animation = animations.get(animation_name_in);
+		if(cur_animation.hasCachePts())
+		{
+			// cache already generated, just exit
+			return;
+		}
+		
+		SetActiveAnimationName(animation_name_in, false);
+				
+		//for(int i = (int)cur_animation.start_time; i <= (int)cur_animation.end_time; i++)
+		int i = (int)cur_animation.start_time;
+		while(true)
+		{
+			run_time = (float)i;
+			float[] new_pts = new float[target_creature.total_num_pts * 3];
+			PoseCreature(animation_name_in, new_pts, getRunTime());
+
+			int realStep = gapStep;
+			if(i + realStep > cur_animation.end_time)
+			{
+				realStep = (int)cur_animation.end_time - i;
+			}
+
+			/*
+			bool firstCase = realStep > 1;
+			bool secondCase = cache_pts_list.Count >= 1;
+			if(firstCase && secondCase)
+			{
+				// fill in the gaps
+				var prev_pts = cache_pts_list[cache_pts_list.Count - 1];
+				for(int j = 0; j < realStep; j++)
+				{
+					float factor = (float)j / (float)realStep;
+					var gap_pts = InterpFloatList(prev_pts, new_pts, factor);
+					cache_pts_list.Add (gap_pts);
+				}
+			}
+			*/
+			
+			cur_animation.addCachePts((int)run_time, new_pts);
+			i += realStep;
+
+			if(i > cur_animation.end_time || realStep == 0)
+			{
+				break;
+			}
+		}
+		
+		setRunTime(store_run_time);
+	}
 
     // Create an animation
     public void CreateAnimation(JsonValue load_data,
@@ -117,6 +193,7 @@ public class CreatureManager {
     public void AddAnimation(CreatureAnimation animation_in)
     {
         animations.put(animation_in.name, animation_in);
+        active_blend_run_times.put(animation_in.name, animation_in.start_time);
     }
 
     // Return an animation
@@ -182,34 +259,8 @@ public class CreatureManager {
         CreatureAnimation cur_animation = animations.get(active_animation_name);
         run_time = cur_animation.start_time;
 
-        MeshBoneUtil.MeshDisplacementCacheManager displacement_cache_manager = cur_animation.displacement_cache;
-        Vector<MeshBoneUtil.MeshDisplacementCache> displacement_table =
-                displacement_cache_manager.displacement_cache_table.get(0);
-
-        MeshBoneUtil.MeshUVWarpCacheManager uv_warp_cache_manager = cur_animation.uv_warp_cache;
-        Vector<MeshBoneUtil.MeshUVWarpCache> uv_swap_table =
-                uv_warp_cache_manager.uv_cache_table.get(0);
-
-        MeshBoneUtil.MeshRenderBoneComposition render_composition =
-                target_creature.render_composition;
-
-        Vector<MeshBoneUtil.MeshRenderRegion> all_regions = render_composition.getRegions();
-
-        int index = 0;
-        for(MeshBoneUtil.MeshRenderRegion cur_region : all_regions)
-        {
-            // Setup active or inactive displacements
-            boolean use_local_displacements = !(displacement_table.get(index).getLocalDisplacements().size() == 0);
-            boolean use_post_displacements = !(displacement_table.get(index).getPostDisplacements().size() == 0);
-            cur_region.setUseLocalDisplacements(use_local_displacements);
-            cur_region.setUsePostDisplacements(use_post_displacements);
-
-            // Setup active or inactive uv swaps
-            cur_region.setUseUvWarp(uv_swap_table.get(index).getEnabled());
-
-            index++;
-        }
-
+        UpdateRegionSwitches(name_in);
+        
         return true;
     }
 
@@ -226,6 +277,42 @@ public class CreatureManager {
         return animations;
     }
 
+ // Update the region switching properties
+    private void UpdateRegionSwitches(String animation_name_in)
+    {
+    	if (animations.containsKey(animation_name_in)) {
+    		CreatureAnimation cur_animation = animations.get(animation_name_in);
+    		
+    		MeshBoneUtil.MeshDisplacementCacheManager displacement_cache_manager = cur_animation.displacement_cache;
+    		Vector<MeshBoneUtil.MeshDisplacementCache> displacement_table =
+    			displacement_cache_manager.displacement_cache_table.get(0);
+    		
+    		MeshBoneUtil.MeshUVWarpCacheManager uv_warp_cache_manager = cur_animation.uv_warp_cache;
+    		Vector<MeshBoneUtil.MeshUVWarpCache> uv_swap_table =
+    			uv_warp_cache_manager.uv_cache_table.get(0);
+    		
+    		MeshBoneUtil.MeshRenderBoneComposition render_composition =
+    			target_creature.render_composition;
+    		Vector<MeshBoneUtil.MeshRenderRegion> all_regions = render_composition.getRegions();
+
+    		int index = 0;
+    		for(int i = 0; i < all_regions.size(); i++) 
+    		{
+    			MeshBoneUtil.MeshRenderRegion cur_region = all_regions.get(i);
+    			// Setup active or inactive displacements
+    			Boolean use_local_displacements = !(displacement_table.get(index).getLocalDisplacements().size() == 0);
+    			Boolean use_post_displacements = !(displacement_table.get(index).getPostDisplacements().size() == 0);
+    			cur_region.setUseLocalDisplacements(use_local_displacements);
+    			cur_region.setUsePostDisplacements(use_post_displacements);
+    			
+    			// Setup active or inactive uv swaps
+    			cur_region.setUseUvWarp(uv_swap_table.get(index).getEnabled());
+    			
+    			index++;
+    		}
+    	}
+    }
+
     // Returns if animation is playing
     boolean GetIsPlaying()
     {
@@ -240,13 +327,6 @@ public class CreatureManager {
 
     // Sets whether the animation loops or not
     public void SetShouldLoop(boolean flag_in) { should_loop = flag_in; }
-
-    // Resets animation to start time
-    public void ResetToStartTimes()
-    {
-        CreatureAnimation cur_animation = animations.get(active_animation_name);
-        run_time = cur_animation.start_time;
-    }
 
     // Sets the run time of the animation
     public void setRunTime(float time_in)
@@ -310,6 +390,11 @@ public class CreatureManager {
         }
 
         increRunTime(delta * time_scale);
+        
+        if(do_auto_blending) {
+        	ProcessAutoBlending();
+            IncreAutoBlendRunTimes(delta * time_scale);
+        }
 
         RunCreature ();
     }
@@ -330,7 +415,20 @@ public class CreatureManager {
         if(do_blending)
         {
             for(int i = 0; i < 2; i++) {
-                PoseCreature(active_blend_animation_names.get(i), blend_render_pts.get(i));
+				String cur_animation_name = active_blend_animation_names.get(i);
+				CreatureAnimation cur_animation = animations.get(cur_animation_name);
+				float cur_animation_run_time = active_blend_run_times.get(cur_animation_name);
+				
+            	if(cur_animation.hasCachePts())
+            	{
+        			cur_animation.poseFromCachePts(cur_animation_run_time, blend_render_pts.get(i), target_creature.total_num_pts);
+					ApplyUVSwapsAndColorChanges(cur_animation_name, blend_render_pts.get(i), cur_animation_run_time);
+					PoseJustBones(cur_animation_name, cur_animation_run_time);            		
+            	}
+            	else {
+					UpdateRegionSwitches(active_blend_animation_names.get(i));
+					PoseCreature(active_blend_animation_names.get(i), blend_render_pts.get(i), cur_animation_run_time);            		
+            	}
             }
 
             for(int j = 0; j < target_creature.total_num_pts * 3; j++)
@@ -350,7 +448,17 @@ public class CreatureManager {
             }
         }
         else {
-            PoseCreature(active_animation_name, target_creature.render_pts);
+        	CreatureAnimation cur_animation = animations.get(active_animation_name);
+        	if(cur_animation.hasCachePts())
+        	{
+    			cur_animation.poseFromCachePts(getRunTime(), target_creature.render_pts, target_creature.total_num_pts);
+				ApplyUVSwapsAndColorChanges(active_animation_name, target_creature.render_pts, getRunTime());
+				PoseJustBones(cur_animation.name, getRunTime());        		
+        	}
+        	else 
+        	{
+                PoseCreature(active_animation_name, target_creature.render_pts, getRunTime());        		
+        	}
         }
     }
 
@@ -388,6 +496,131 @@ public class CreatureManager {
 
         }
     }
+
+
+	// Sets auto blending
+	public void SetAutoBlending(Boolean flag_in)
+	{
+		do_auto_blending = flag_in;
+		SetBlending(flag_in);
+		
+		if(do_auto_blending)
+		{
+			AutoBlendTo(active_animation_name, 0.1f);
+		}
+	}
+
+	// Use auto blending to blend to the next animation
+	public void AutoBlendTo(String animation_name_in, float blend_delta)
+	{
+		if(animation_name_in == auto_blend_names.get(1))
+		{
+			// already blending to that so just return
+			return;
+		}
+		
+		ResetBlendTime(animation_name_in);
+		
+		auto_blend_delta = blend_delta;
+		auto_blend_names.set(0, active_animation_name);
+		auto_blend_names.set(1, animation_name_in);
+		blending_factor = 0;
+		
+		active_animation_name = animation_name_in;
+		
+		SetBlendingAnimations(auto_blend_names.get(0), auto_blend_names.get(1));
+	}
+
+	public void ResetBendTime(String name_in)
+	{
+		CreatureAnimation cur_animation = animations.get(name_in);
+		active_blend_run_times.put(name_in, cur_animation.start_time);
+	}
+
+	// Resets animation to start time
+	public void ResetToStartTimes()
+	{
+		if(animations.containsKey(active_animation_name) == false)
+		{
+			return;
+		}
+		
+		// reset non blend time
+		CreatureAnimation cur_animation = animations.get(active_animation_name);
+		run_time = cur_animation.start_time;
+		
+		// reset blend times too
+		for (Map.Entry<String, Float> entry : active_blend_run_times.entrySet()) {
+			ResetBlendTime(entry.getKey());
+		}	
+	}
+	
+	private void ResetBlendTime(String name_in)
+	{
+		// currently do nothing
+	}
+
+	private void ProcessAutoBlending()
+	{
+		// process blending factor
+		blending_factor += auto_blend_delta;
+		if(blending_factor > 1)
+		{
+			blending_factor = 1;
+		}
+	}
+
+	private void IncreAutoBlendRunTimes(float delta_in)
+	{
+		String set_animation_name = "";
+		for(int i = 0; i < auto_blend_names.size(); i++)
+		{
+			String cur_animation_name = auto_blend_names.get(i);
+			if ((animations.containsKey(cur_animation_name)) 
+			    && (set_animation_name.equals(cur_animation_name) == false))
+			{
+				float cur_run_time = active_blend_run_times.get(cur_animation_name);
+				cur_run_time += delta_in;
+				cur_run_time = correctRunTime(cur_run_time, cur_animation_name);
+
+				active_blend_run_times.put(cur_animation_name, cur_run_time);
+				
+				set_animation_name = cur_animation_name;
+			}
+		}
+	}    
+
+
+	private float correctRunTime(float time_in, String animation_name)
+	{
+		float ret_time = time_in;
+		CreatureAnimation cur_animation = animations.get(animation_name);
+		float anim_start_time = cur_animation.start_time;
+		float anim_end_time = cur_animation.end_time;
+		
+		if (ret_time > anim_end_time)
+		{
+			if (should_loop)
+			{
+				ret_time = anim_start_time;
+			}
+			else {
+				ret_time = anim_end_time;
+			}
+		}
+		else if (ret_time < anim_start_time)
+		{
+			if (should_loop)
+			{
+				ret_time = anim_end_time;
+			}
+			else {
+				ret_time = anim_start_time;
+			}
+		}
+		
+		return ret_time;
+	}
 
     // Sets blending animation names
     public void SetBlendingAnimations(String name_1, String name_2)
@@ -451,9 +684,75 @@ public class CreatureManager {
         return ret_name;
     }
 
+	private void ApplyUVSwapsAndColorChanges(String animation_name_in,
+            float[] target_pts,
+            float input_run_time)
+	{
+		CreatureAnimation cur_animation = animations.get(animation_name_in);
+		
+		MeshBoneUtil.MeshUVWarpCacheManager uv_warp_cache_manager = cur_animation.uv_warp_cache;
+		//MeshBoneUtil.MeshOpacityCacheManager opacity_cache_manager = cur_animation.opacity_cache;
+		
+		MeshBoneUtil.MeshRenderBoneComposition render_composition =
+		target_creature.render_composition;
+		
+		HashMap<String, MeshBoneUtil.MeshRenderRegion> regions_map =
+		render_composition.getRegionsMap();
+		
+		uv_warp_cache_manager.retrieveValuesAtTime(input_run_time,
+		                  regions_map);
+		
+		/*
+		opacity_cache_manager.retrieveValuesAtTime(input_run_time,
+		                  regions_map);
+		
+		UpdateRegionColours ();
+		*/
+		
+		Vector<MeshBoneUtil.MeshRenderRegion> cur_regions = render_composition.getRegions();
+		for(int j = 0; j < cur_regions.size(); j++) {
+			MeshBoneUtil.MeshRenderRegion cur_region = cur_regions.get(j);
+		
+			if(cur_region.use_uv_warp)
+			{
+				cur_region.runUvWarp();
+			}
+		
+			// add in z offsets for different regions
+			/*
+			for(int k = cur_region.getStartPtIndex() * 3;
+					k <= cur_region.getEndPtIndex() * 3; 
+					k+=3)
+			{
+				target_pts[k + 2] = j * region_offsets_z;
+			}
+			*/
+		}
+	}
+
+    
+    public void PoseJustBones(String animation_name_in,
+            float input_run_time)
+    {
+    	CreatureAnimation cur_animation = animations.get(animation_name_in);
+    	MeshBoneUtil.MeshRenderBoneComposition render_composition =
+    			target_creature.render_composition;
+
+    	MeshBoneUtil.MeshBoneCacheManager bone_cache_manager = cur_animation.bones_cache;
+    	HashMap<String, MeshBone> bones_map =
+    			render_composition.getBonesMap();
+
+    	bone_cache_manager.retrieveValuesAtTime(input_run_time, bones_map);
+
+    	if(bones_override_callback != null) 
+    	{
+    		bones_override_callback.run(bones_map);
+    	}
+	}
 
     public void PoseCreature(String animation_name_in,
-                             float[] target_pts)
+                             float[] target_pts,
+                             float input_run_time)
     {
         CreatureAnimation cur_animation = animations.get(animation_name_in);
 
@@ -470,7 +769,7 @@ public class CreatureManager {
         HashMap<String, MeshRenderRegion> regions_map =
                 render_composition.getRegionsMap();
 
-        bone_cache_manager.retrieveValuesAtTime(getRunTime(),
+        bone_cache_manager.retrieveValuesAtTime(input_run_time,
                  bones_map);
 
         if(bones_override_callback != null)
@@ -478,9 +777,9 @@ public class CreatureManager {
             bones_override_callback.run(bones_map);
         }
 
-        displacement_cache_manager.retrieveValuesAtTime(getRunTime(),
+        displacement_cache_manager.retrieveValuesAtTime(input_run_time,
                 regions_map);
-        uv_warp_cache_manager.retrieveValuesAtTime(getRunTime(),
+        uv_warp_cache_manager.retrieveValuesAtTime(input_run_time,
                 regions_map);
 
 
