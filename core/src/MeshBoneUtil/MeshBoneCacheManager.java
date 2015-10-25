@@ -46,6 +46,9 @@ public class MeshBoneCacheManager {
     public int start_time, end_time;
     public boolean is_ready;
 
+    private Vector3 tmp_world_start_pt = new Vector3();
+    private Vector3 tmp_world_end_pt = new Vector3();
+    private Vector3 tmp_vector = new Vector3();
 
     public MeshBoneCacheManager()
     {
@@ -101,6 +104,7 @@ public class MeshBoneCacheManager {
         int end_time = getIndexByTime((int)Math.ceil((double)time_in));
 
         float ratio = (time_in - (float)base_time);
+        float inverse_ratio = 1.0f - ratio;
 
         if(bone_cache_data_ready.size() == 0) {
             return;
@@ -120,22 +124,16 @@ public class MeshBoneCacheManager {
             MeshBoneCache end_data = end_cache.get(i);
             String cur_key = base_data.getKey();
 
-            Vector3 final_world_start_pt = base_data.getWorldStartPt().cpy().scl(1.0f - ratio).add(
-                    end_data.getWorldStartPt().cpy().scl(ratio));
+            tmp_world_start_pt.set(base_data.getWorldStartPt().scl(inverse_ratio)
+                    .add(tmp_vector.set(end_data.getWorldStartPt()).scl(ratio)));
 
-            Vector3 final_world_end_pt = base_data.getWorldEndPt().cpy().scl(1.0f - ratio).add(
-                    end_data.getWorldEndPt().cpy().scl(ratio));
+            tmp_world_end_pt.set(base_data.getWorldEndPt().scl(inverse_ratio)
+                    .add(tmp_vector.set(end_data.getWorldEndPt()).scl(ratio)));
 
-            /*
-            Vector3 final_world_start_pt = ((1.0f - ratio) * base_data.getWorldStartPt()) +
-                    (ratio * end_data.getWorldStartPt());
+            MeshBone mesh_bone = bone_map.get(cur_key);
 
-            Vector3 final_world_end_pt = ((1.0f - ratio) * base_data.getWorldEndPt()) +
-                    (ratio * end_data.getWorldEndPt());
-            */
-
-            bone_map.get(cur_key).setWorldStartPt(final_world_start_pt);
-            bone_map.get(cur_key).setWorldEndPt(final_world_end_pt);
+            mesh_bone.getWorldStartPt().set(tmp_world_start_pt);
+            mesh_bone.getWorldEndPt().set(tmp_world_end_pt);
         }
     }
 
