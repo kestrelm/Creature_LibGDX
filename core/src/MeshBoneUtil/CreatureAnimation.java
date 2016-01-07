@@ -65,6 +65,7 @@ public class CreatureAnimation {
     public MeshBoneCacheManager bones_cache;
     public MeshDisplacementCacheManager displacement_cache;
     public MeshUVWarpCacheManager uv_warp_cache;
+    public MeshOpacityCacheManager opacity_cache;
     public Vector<CreaturePointCache> cache_pts;
 
     public CreatureAnimation(JsonValue load_data,
@@ -87,6 +88,7 @@ public class CreatureAnimation {
         bones_cache = new MeshBoneCacheManager ();
         displacement_cache = new MeshDisplacementCacheManager ();
         uv_warp_cache = new MeshUVWarpCacheManager ();
+        opacity_cache = new MeshOpacityCacheManager();
         cache_pts = new Vector<CreaturePointCache>();
     }
 
@@ -120,6 +122,13 @@ public class CreatureAnimation {
                 (int)start_time,
                 (int)end_time,
                  uv_warp_cache);
+        
+        // opacity animation
+        CreatureModuleUtils.FillOpacityCache(json_clip,
+                "mesh_opacities",
+                (int)start_time,
+                (int)end_time,
+                 opacity_cache);
     }
    
 	public void LoadFromDataFlat(String name_in,
@@ -156,6 +165,12 @@ public class CreatureAnimation {
                 (int)start_time,
                 (int)end_time,
                  uv_warp_cache);
+        
+        // opacity animation
+        CreatureModuleUtils.FillOpacityCacheFlat(flat_clip.meshOpacities(),
+                (int)start_time,
+                (int)end_time,
+                 opacity_cache);
 	}
 	
 	public Boolean hasCachePts() {

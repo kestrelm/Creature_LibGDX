@@ -56,6 +56,7 @@ public class MeshRenderRegion {
     public boolean use_uv_warp;
     public Vector2 uv_warp_local_offset, uv_warp_global_offset, uv_warp_scale;
     public java.util.Vector<Vector2> uv_warp_ref_uvs;
+    public float opacity;
     public HashMap<String, float[] > normal_weight_map;
     public java.util.Vector<float[] > fast_normal_weight_map;
     public Vector<MeshBone> fast_bones_map;
@@ -84,6 +85,7 @@ public class MeshRenderRegion {
         uv_warp_local_offset = new Vector2(0,0);
         uv_warp_global_offset = new Vector2(0,0);
         uv_warp_scale = new Vector2(1,1);
+        opacity = 100.0f;
         start_pt_index = start_pt_index_in;
         end_pt_index = end_pt_index_in;
         start_index = start_index_in;

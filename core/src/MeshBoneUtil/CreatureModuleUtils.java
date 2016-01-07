@@ -134,6 +134,14 @@ public class CreatureModuleUtils {
         boolean val = (boolean)data.get(key).asBoolean();
         return val;
     }
+    
+    public static float ReadFloatJSON(JsonValue data,
+            String key)
+	{
+		float val = (float)data.get(key).asFloat();
+		return val;
+	}
+    
 
     public static float[] ReadFloatArrayJSON(JsonValue data,
                                                  String key)
@@ -685,5 +693,73 @@ public class CreatureModuleUtils {
 
         cache_manager.makeAllReady();
     }
+    
+    public static void FillOpacityCache(JsonValue json_obj,
+            String key,
+            int start_time,
+            int end_time,
+            MeshOpacityCacheManager cache_manager)
+	{
+		JsonValue base_obj = json_obj.get(key);
+		
+		cache_manager.init(start_time, end_time);
+		
+		for (JsonValue cur_node = base_obj.child; cur_node != null; cur_node = cur_node.next)
+		{
+			int cur_time = Integer.parseInt(cur_node.name);
+			
+			Vector<MeshOpacityCache> cache_list = new Vector<MeshOpacityCache>();
+			
+			for (JsonValue opacity_node = cur_node.child; opacity_node != null; opacity_node = opacity_node.next)
+			
+			{
+				String cur_name = opacity_node.name;
+				
+				MeshOpacityCache cache_data = new MeshOpacityCache(cur_name);
+				float cur_opacity = ReadFloatJSON(opacity_node, "opacity");
+				cache_data.setOpacity(cur_opacity);
+				cache_list.add(cache_data);
+			}
+			
+			int set_index = cache_manager.getIndexByTime(cur_time);
+			cache_manager.opacity_cache_table.set(set_index, cache_list);
+		}
+		
+		cache_manager.makeAllReady();
+	}
 
+    
+    public static void FillOpacityCacheFlat(CreatureFlatDataJava.animationMeshOpacityList animOpacityList,
+            int start_time,
+            int end_time,
+            MeshOpacityCacheManager cache_manager)
+    {
+        cache_manager.init(start_time, end_time);
+
+        for (int i = 0; i < animOpacityList.timeSamplesLength(); i++)
+        {
+        	CreatureFlatDataJava.animationMeshOpacityTimeSample cur_node = animOpacityList.timeSamples(i);
+            int cur_time = cur_node.time(); //Integer.parseInt(cur_node.name);
+
+            Vector<MeshOpacityCache> cache_list = new Vector<MeshOpacityCache>();
+
+            for (int j = 0; j < cur_node.meshOpacitiesLength(); j++)
+
+            {
+            	CreatureFlatDataJava.animationMeshOpacity opacity_node = cur_node.meshOpacities(j);
+                String cur_name = opacity_node.name();
+
+                MeshOpacityCache cache_data = new MeshOpacityCache(cur_name);
+                float cur_opacity = opacity_node.opacity();
+                cache_data.setOpacity(cur_opacity);
+
+                cache_list.add(cache_data);
+            }
+
+            int set_index = cache_manager.getIndexByTime(cur_time);
+            cache_manager.opacity_cache_table.set(set_index, cache_list);
+        }
+
+        cache_manager.makeAllReady();
+    }
 }

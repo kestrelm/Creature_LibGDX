@@ -24,9 +24,11 @@ public class MyGdxGame extends ApplicationAdapter {
 	public void create () {
 		fpsLogger = new FPSLogger();
 		
-		//String jsonFilename = baseResourcePath + "character_raptor_data.json";
 		String flatFilename = "character_raptor_data.bin";
 		String pngFilename = "character_raptor_img.png";
+
+		//String flatFilename = "turtleExport_character_data.bin";
+		//String pngFilename = "turtleExport_character_img.png";
 
 		camera = new OrthographicCamera( (float)Gdx.graphics.getWidth() * 0.05f,
                 (float)Gdx.graphics.getHeight() * 0.05f);

@@ -683,6 +683,30 @@ public class CreatureManager {
 
         return ret_name;
     }
+    
+    private void UpdateRegionColours()
+    {
+    	MeshBoneUtil.MeshRenderBoneComposition render_composition =
+    			target_creature.render_composition;
+		Vector<MeshBoneUtil.MeshRenderRegion> cur_regions = render_composition.getRegions();
+		
+		for (int i = 0; i < cur_regions.size(); i++) {
+			MeshBoneUtil.MeshRenderRegion cur_region = cur_regions.get(i);
+			float set_opacity = cur_region.opacity * 0.01f;
+
+			int cur_rgba_index = cur_region.getStartPtIndex() * 4;
+			for(int j = 0; j < cur_region.getNumPts(); j++)
+			{
+				target_creature.render_colours[cur_rgba_index] = set_opacity;
+				target_creature.render_colours[cur_rgba_index + 1] = set_opacity;
+				target_creature.render_colours[cur_rgba_index + 2] = set_opacity;
+				target_creature.render_colours[cur_rgba_index + 3] = set_opacity;
+
+				cur_rgba_index += 4;
+			}
+
+		}
+    }
 
 	private void ApplyUVSwapsAndColorChanges(String animation_name_in,
             float[] target_pts,
@@ -691,7 +715,7 @@ public class CreatureManager {
 		CreatureAnimation cur_animation = animations.get(animation_name_in);
 		
 		MeshBoneUtil.MeshUVWarpCacheManager uv_warp_cache_manager = cur_animation.uv_warp_cache;
-		//MeshBoneUtil.MeshOpacityCacheManager opacity_cache_manager = cur_animation.opacity_cache;
+		MeshBoneUtil.MeshOpacityCacheManager opacity_cache_manager = cur_animation.opacity_cache;
 		
 		MeshBoneUtil.MeshRenderBoneComposition render_composition =
 		target_creature.render_composition;
@@ -702,12 +726,10 @@ public class CreatureManager {
 		uv_warp_cache_manager.retrieveValuesAtTime(input_run_time,
 		                  regions_map);
 		
-		/*
 		opacity_cache_manager.retrieveValuesAtTime(input_run_time,
 		                  regions_map);
 		
 		UpdateRegionColours ();
-		*/
 		
 		Vector<MeshBoneUtil.MeshRenderRegion> cur_regions = render_composition.getRegions();
 		for(int j = 0; j < cur_regions.size(); j++) {
