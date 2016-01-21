@@ -762,4 +762,111 @@ public class CreatureModuleUtils {
 
         cache_manager.makeAllReady();
     }
+    
+    public static HashMap<String, java.util.Vector<CreatureUVSwapPacket>>
+	FillSwapUvPacketMap(JsonValue json_obj, String key)
+	{
+    	HashMap<String, java.util.Vector<CreatureUVSwapPacket>> ret_map = new HashMap<String, java.util.Vector<CreatureUVSwapPacket>>();
+
+		if(json_obj.get(key) == null)
+		{
+			return ret_map;
+		}
+
+		JsonValue base_obj = json_obj.get(key);
+
+		for (JsonValue cur_node = base_obj.child; cur_node != null; cur_node = cur_node.next)
+		{
+			String cur_name = cur_node.name;
+			java.util.Vector<CreatureUVSwapPacket> cur_packets = new java.util.Vector<CreatureUVSwapPacket>();
+
+			for(int j = 0; j < cur_node.size; j++)
+			{
+				JsonValue packet_dict = cur_node.get(j);
+				Vector2 local_offset = ReadVector2JSON(packet_dict, "local_offset");
+				Vector2 global_offset = ReadVector2JSON(packet_dict, "global_offset");
+				Vector2 scale = ReadVector2JSON(packet_dict, "scale");
+				Integer tag = packet_dict.get("tag").asInt();
+
+				CreatureUVSwapPacket new_packet = new CreatureUVSwapPacket(local_offset, global_offset, scale, tag);
+				cur_packets.add(new_packet);
+			}
+
+			ret_map.put(cur_name, cur_packets);
+		}
+
+		return ret_map;
+	}
+    
+    public static HashMap<String, java.util.Vector<CreatureUVSwapPacket>>
+	FillSwapUvPacketMapFlat(CreatureFlatDataJava.uvSwapItemHolder uvSwapItemFlatHolder)
+	{
+    	HashMap<String, java.util.Vector<CreatureUVSwapPacket>> ret_map = new HashMap<String, java.util.Vector<CreatureUVSwapPacket>>();
+    	
+    	for(int i = 0; i < uvSwapItemFlatHolder.meshesLength(); i++)
+    	{
+    		CreatureFlatDataJava.uvSwapItemMesh cur_mesh = uvSwapItemFlatHolder.meshes(i);
+    		String cur_name = cur_mesh.name();
+			java.util.Vector<CreatureUVSwapPacket> cur_packets = new java.util.Vector<CreatureUVSwapPacket>();
+			
+			for(int j = 0; j < cur_mesh.itemsLength(); j++)
+			{
+				CreatureFlatDataJava.uvSwapItemData cur_item = cur_mesh.items(j);
+				Vector2 local_offset = new Vector2(cur_item.localOffset(0), cur_item.localOffset(1));
+				Vector2 global_offset = new Vector2(cur_item.globalOffset(0), cur_item.globalOffset(1));
+				Vector2 scale = new Vector2(cur_item.scale(0), cur_item.scale(1));
+				Integer tag = cur_item.tag();
+				
+
+				CreatureUVSwapPacket new_packet = new CreatureUVSwapPacket(local_offset, global_offset, scale, tag);
+				cur_packets.add(new_packet);
+			}
+			
+			ret_map.put(cur_name, cur_packets);
+    	}
+
+		return ret_map;
+	}
+
+
+	public static HashMap<String, Vector2>
+	FillAnchorPointMap(JsonValue json_obj, String key)
+	{
+		HashMap<String, Vector2> ret_map = new HashMap<String, Vector2>();
+		if(json_obj.get(key) == null)
+		{
+			return ret_map;
+		}
+
+		JsonValue base_obj = json_obj.get(key);
+		JsonValue anchor_obj = base_obj.get("AnchorPoints");
+
+		for(int j = 0; j < anchor_obj.size; j++)
+		{
+			JsonValue anchor_dict = anchor_obj.get(j);
+			Vector2 cur_pt = ReadVector2JSON(anchor_dict, "point");
+			String cur_name = anchor_dict.get("anim_clip_name").asString();
+
+			ret_map.put(cur_name, cur_pt);
+		}
+
+		return ret_map;
+	}
+	
+	public static HashMap<String, Vector2>
+	FillAnchorPointMapFlat(CreatureFlatDataJava.anchorPointsHolder anchorFlatHolder)
+	{
+		HashMap<String, Vector2> ret_map = new HashMap<String, Vector2>();
+		for(int i = 0; i < anchorFlatHolder.anchorPointsLength(); i++)
+		{
+			CreatureFlatDataJava.anchorPointData cur_data = anchorFlatHolder.anchorPoints(i);
+			Vector2 cur_pt = new Vector2(cur_data.point(0), cur_data.point(1));
+			String cur_name = cur_data.animClipName();
+			
+			ret_map.put(cur_name, cur_pt);
+		}
+
+		return ret_map;
+	}
+
 }

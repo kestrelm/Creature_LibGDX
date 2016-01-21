@@ -57,7 +57,11 @@ public class Creature {
     public float[] render_colours;
     public int total_num_pts, total_num_indices;
     public MeshRenderBoneComposition render_composition;
-
+    public HashMap<String, java.util.Vector<CreatureUVSwapPacket>> uv_swap_packets;
+    public HashMap<String, Integer> active_uv_swap_actions;
+	public HashMap<String, Vector2> anchor_point_map;
+	public Boolean anchor_points_active;
+	
     public Creature(JsonValue load_data)
     {
     	StartInit();
@@ -80,6 +84,10 @@ public class Creature {
         render_pts = null;
         render_colours = null;
         render_composition = null;
+		uv_swap_packets = new  HashMap<String, java.util.Vector<CreatureUVSwapPacket>>();
+		active_uv_swap_actions = new HashMap<String, Integer>();
+		anchor_point_map = new HashMap<String, Vector2>();
+		anchor_points_active = false;
     }
 
     // Fills entire mesh with (r,g,b,a) colours
@@ -150,6 +158,12 @@ public class Creature {
         }
 
         render_composition.resetToWorldRestPts();
+        
+        // Fill up uv swap packets
+        uv_swap_packets = CreatureModuleUtils.FillSwapUvPacketMap(load_data, "uv_swap_items");
+        
+        // Load Anchor Points
+        anchor_point_map = CreatureModuleUtils.FillAnchorPointMap(load_data, "anchor_point_items");
     }
     
     public void LoadFromDataFlat(CreatureFlatDataJava.rootData flatRoot)
@@ -205,6 +219,34 @@ public class Creature {
         }
 
         render_composition.resetToWorldRestPts();
+        
+        // Fill up uv swap packets
+        CreatureFlatDataJava.uvSwapItemHolder flat_uv_swap_item_holder = flatRoot.dataUvSwapItem();
+        uv_swap_packets = CreatureModuleUtils.FillSwapUvPacketMapFlat(flat_uv_swap_item_holder);
+        
+        // Load Anchor Points
+        CreatureFlatDataJava.anchorPointsHolder flat_anchor_holder = flatRoot.dataAnchorPoints();
+        anchor_point_map = CreatureModuleUtils.FillAnchorPointMapFlat(flat_anchor_holder);
     }
 
+	public void SetActiveItemSwap(String region_name, int swap_idx)
+	{
+		active_uv_swap_actions.put(region_name, swap_idx);
+	}
+
+	public void RemoveActiveItemSwap(String region_name)
+	{
+		active_uv_swap_actions.remove(region_name);
+	}
+	
+
+	public Vector2 GetAnchorPoint(String anim_clip_name_in)
+	{
+		if(anchor_point_map.get(anim_clip_name_in) != null)
+		{
+			return anchor_point_map.get(anim_clip_name_in);
+		}
+
+		return new Vector2(0,0);
+	}
 }

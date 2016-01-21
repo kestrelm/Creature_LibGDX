@@ -22,26 +22,37 @@ public final class rootData extends Table {
   public skeleton dataSkeleton(skeleton obj) { int o = __offset(6); return o != 0 ? obj.__init(__indirect(o + bb_pos), bb) : null; }
   public animation dataAnimation() { return dataAnimation(new animation()); }
   public animation dataAnimation(animation obj) { int o = __offset(8); return o != 0 ? obj.__init(__indirect(o + bb_pos), bb) : null; }
+  public uvSwapItemHolder dataUvSwapItem() { return dataUvSwapItem(new uvSwapItemHolder()); }
+  public uvSwapItemHolder dataUvSwapItem(uvSwapItemHolder obj) { int o = __offset(10); return o != 0 ? obj.__init(__indirect(o + bb_pos), bb) : null; }
+  public anchorPointsHolder dataAnchorPoints() { return dataAnchorPoints(new anchorPointsHolder()); }
+  public anchorPointsHolder dataAnchorPoints(anchorPointsHolder obj) { int o = __offset(12); return o != 0 ? obj.__init(__indirect(o + bb_pos), bb) : null; }
 
   public static int createrootData(FlatBufferBuilder builder,
       int dataMesh,
       int dataSkeleton,
-      int dataAnimation) {
-    builder.startObject(3);
+      int dataAnimation,
+      int dataUvSwapItem,
+      int dataAnchorPoints) {
+    builder.startObject(5);
+    rootData.addDataAnchorPoints(builder, dataAnchorPoints);
+    rootData.addDataUvSwapItem(builder, dataUvSwapItem);
     rootData.addDataAnimation(builder, dataAnimation);
     rootData.addDataSkeleton(builder, dataSkeleton);
     rootData.addDataMesh(builder, dataMesh);
     return rootData.endrootData(builder);
   }
 
-  public static void startrootData(FlatBufferBuilder builder) { builder.startObject(3); }
+  public static void startrootData(FlatBufferBuilder builder) { builder.startObject(5); }
   public static void addDataMesh(FlatBufferBuilder builder, int dataMeshOffset) { builder.addOffset(0, dataMeshOffset, 0); }
   public static void addDataSkeleton(FlatBufferBuilder builder, int dataSkeletonOffset) { builder.addOffset(1, dataSkeletonOffset, 0); }
   public static void addDataAnimation(FlatBufferBuilder builder, int dataAnimationOffset) { builder.addOffset(2, dataAnimationOffset, 0); }
+  public static void addDataUvSwapItem(FlatBufferBuilder builder, int dataUvSwapItemOffset) { builder.addOffset(3, dataUvSwapItemOffset, 0); }
+  public static void addDataAnchorPoints(FlatBufferBuilder builder, int dataAnchorPointsOffset) { builder.addOffset(4, dataAnchorPointsOffset, 0); }
   public static int endrootData(FlatBufferBuilder builder) {
     int o = builder.endObject();
     return o;
   }
   public static void finishrootDataBuffer(FlatBufferBuilder builder, int offset) { builder.finish(offset); }
 };
+
 

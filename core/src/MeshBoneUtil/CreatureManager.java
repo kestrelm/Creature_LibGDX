@@ -12,6 +12,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Vector;
+import java.util.Iterator;
+import java.util.Set;
 
 /******************************************************************************
  * Creature Runtimes License
@@ -460,6 +462,8 @@ public class CreatureManager {
                 PoseCreature(active_animation_name, target_creature.render_pts, getRunTime());        		
         	}
         }
+        
+        RunUVItemSwap();
     }
 
     // Sets scaling for time
@@ -766,10 +770,77 @@ public class CreatureManager {
 
     	bone_cache_manager.retrieveValuesAtTime(input_run_time, bones_map);
 
+    	AlterBonesByAnchor(bones_map, animation_name_in); 
+    	
     	if(bones_override_callback != null) 
     	{
     		bones_override_callback.run(bones_map);
     	}
+	}
+    
+	public void RunUVItemSwap()
+	{
+		MeshBoneUtil.MeshRenderBoneComposition render_composition =
+			target_creature.render_composition;			
+		HashMap<String, MeshBoneUtil.MeshRenderRegion> regions_map =
+			render_composition.getRegionsMap();
+
+		HashMap<String, Vector<CreatureUVSwapPacket>> swap_packets = target_creature.uv_swap_packets;
+		HashMap<String, Integer> active_swap_actions = target_creature.active_uv_swap_actions;
+
+		if(swap_packets.isEmpty() || active_swap_actions.isEmpty())
+		{
+			return;
+		}
+
+		for(String actionKey : active_swap_actions.keySet())
+		{
+			if(regions_map.get(actionKey) != null)
+			{
+				int swap_tag = active_swap_actions.get(actionKey);
+				Vector<CreatureUVSwapPacket> swap_list = swap_packets.get(actionKey);
+				
+				for(int j = 0; j < swap_list.size(); j++)
+				{
+					CreatureUVSwapPacket cur_item = swap_list.get(j);
+					if(cur_item.tag == swap_tag)
+					{
+						// Perform UV Item Swap
+						MeshRenderRegion cur_region = regions_map.get(actionKey);
+						cur_region.setUvWarpLocalOffset(cur_item.local_offset);
+						cur_region.setUvWarpGlobalOffset(cur_item.global_offset);
+						cur_region.setUvWarpScale(cur_item.scale);
+						cur_region.runUvWarp();
+
+						break;
+					}
+				}
+			}
+		}
+	}
+	
+	public void AlterBonesByAnchor(HashMap<String, MeshBoneUtil.MeshBone> bones_map, String animation_name_in)
+	{
+		if(target_creature.anchor_points_active == false)
+		{
+			return;
+		}
+
+		Vector2 anchor_point = target_creature.GetAnchorPoint(animation_name_in);
+		Vector3 anchor_vector =  new Vector3(anchor_point.x, anchor_point.y, 0);
+		
+		for(String curKey : bones_map.keySet())
+		{
+			MeshBone cur_bone = bones_map.get(curKey);
+			Vector3 start_pt = cur_bone.getWorldStartPt();
+			Vector3 end_pt = cur_bone.getWorldEndPt();
+
+			start_pt.sub(anchor_vector);
+			end_pt.sub(anchor_vector);
+
+			cur_bone.setWorldStartPt(start_pt);
+			cur_bone.setWorldEndPt(end_pt);
+		}
 	}
 
     public void PoseCreature(String animation_name_in,
@@ -793,6 +864,8 @@ public class CreatureManager {
 
         bone_cache_manager.retrieveValuesAtTime(input_run_time,
                  bones_map);
+        
+        AlterBonesByAnchor(bones_map, animation_name_in);
 
         if(bones_override_callback != null)
         {
